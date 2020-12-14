@@ -1,0 +1,75 @@
+import requests
+from bs4 import BeautifulSoup
+from pip._vendor.distlib.compat import raw_input
+import re
+import pandas as pd
+try:
+    input = raw_input
+except NameError: pass
+quote = input("Введите цитату: ")
+# quote = input("Введите цитату: ")
+
+# url = f"https://lingo.life/quotes?search=make"
+HOST = 'https://lingo.life/'
+def get_data(url):
+    headers = {
+        'accept':'...',
+        "user-agent": "..."
+    }
+
+
+    # def get_quotes(quote):
+    # req = requests.get(url, headers)
+    # src = req.text
+    # posts = src['response']['items']
+    # print(req.text)
+    # with open(r"C:\\....\\suck.html", "w", encoding='utf-8') as file:
+    #     file.write(req.text)
+    with open(r'C:\\...\\data\\suck.html', 'r', encoding='utf-8') as file:
+        src = file.read()
+    #     # print(src)
+        soup = BeautifulSoup(src, "lxml")
+        quotes = soup.find_all('div', class_='card-body')
+        quotes_urls = []
+        for quote in quotes:
+            quote_url = quote.find('a').get('href')
+
+            quotes_urls.append(quote_url)
+        quotes_data_list = []
+        for quote_url in quotes_urls:
+            req = requests.get(quote_url, headers)
+            quote_name = quote_url.split("/")[-1]
+            with open(f"data/{quote_name}.html", "w", encoding='utf-8') as file:
+                file.write(req.text)
+            with open(f"data/{quote_name}.html", "r", encoding='utf-8') as file:
+                src = file.read()
+            soup = BeautifulSoup(src, "lxml")
+            quote_data = soup.find('div', class_='card-body d-flex flex-column').get_text().replace('\n\n','\n').replace('\n\n','\n').replace('\n\n','\n').replace('Перевод на Русский:\n','').replace('Ваше имя:\n','').strip()
+
+            # print(quote_data)
+            quotes_data_list.append(
+                {
+                  "Quote:": quote_name,
+                    # "Eng_TRanslation:": Eng,
+                    "Translation:": quote_data
+                }
+            )
+        # print(quotes_data_list)
+        df = pd.DataFrame(quotes_data_list)
+        writer = pd.ExcelWriter('C:\\...\\study3.xlsx', engine='xlsxwriter')
+
+
+        df.to_excel(writer, sheet_name='Sheet1')
+        workbook = writer.book
+        worksheet = writer.sheets['Sheet1']
+        format1 = workbook.add_format({'num_format': '#,##0.00'})
+        format2 = workbook.add_format({'num_format': '0%'})
+        worksheet.set_column('B:B', 50, format1)
+        worksheet.set_column('C:C', 35, format1)
+        worksheet.conditional_format('B2:B8', {'type': '3_color_scale'})
+        writer.save()
+def main():
+ get_data(f"https://lingo.life/quotes?search={quote}")
+#
+if __name__ == "__main__":
+    main()
