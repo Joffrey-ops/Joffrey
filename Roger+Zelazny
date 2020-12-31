@@ -1,0 +1,87 @@
+import pandas as pd
+import requests
+from bs4 import BeautifulSoup
+ 
+HOST ='https://www.goodreads.com'
+def get_data(url):
+    headers = {
+        'accept': 'accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+        "user-agent": "..."
+    }
+ 
+ 
+ 
+    # req = requests.get(url , headers)
+    # with open(f"C:\\...\\Roger Zelazny.html", "w", encoding='utf-8') as file:
+    #     file.write(req.text)
+ 
+ 
+    with open(r'C:\\...\\Roger Zelazny.html') as file:
+        src = file.read()
+ 
+    soup = BeautifulSoup(src, "lxml")
+    annotations = soup.find('tbody').find_all('tr', {"itemtype": "http://schema.org/Book"})
+    annotations_urls = []
+    for annotation in annotations:
+        title_link = annotation.find('a', class_='bookTitle').get('href')
+        # print(title_link)
+        annotations_urls.append(title_link)
+    project_data_list = []
+    for title_link in annotations_urls:
+        req = requests.get(title_link, headers)
+        project_name = title_link.split("=")[-2]
+        with open(f"data/{project_name}.html", "w", encoding='utf-8') as file:
+             file.write(req.text)
+        with open(f"data/{project_name}.html", "r", encoding='utf-8') as file:
+               src = file.read()
+        # print(project_name)
+        soup = BeautifulSoup(src, "lxml")
+        project_data = soup.find('div', {"id": "metacol"})
+        title_name = project_data.find('h1', {"id": "bookTitle"}).text.strip()
+ 
+        project_review =soup.find('div', {"class": "reviewText stacked"})
+        review =project_review.find('span', {"class": "readable"}).next_element.next_element.text
+        # print(review)
+        try:
+            book_series = HOST + project_data.find('h2', {"id": "bookSeries"}).find('a', {"class": "greyText"}).get('href')
+ 
+        except:
+            book_series =""
+        try:
+           autor = project_data.find('div', {"id": "bookAuthors"}).find('div', {"class": "authorName__container"}).find('a', {"class": "authorName"}).get('href')
+           # print(autor)
+        except:
+            autor =""
+ 
+        project_data_list.append(
+                    {
+                        "Book_Name": title_name,
+                        "Book_Series": book_series,
+                        "Review": review,
+                        "Autor": autor
+ 
+                    }
+                )
+    # print(project_data_list)
+        df = pd.DataFrame(project_data_list)
+        writer = pd.ExcelWriter('C:\\Users\\Joffrey\\PycharmProjects\\study\\datafiles\\study7.xlsx', engine='xlsxwriter')
+        df.to_excel(writer, sheet_name='Sheet1')
+        workbook = writer.book
+        worksheet = writer.sheets['Sheet1']
+        format1 = workbook.add_format({'num_format': '#,##0.00'})
+        format2 = workbook.add_format({'num_format': '0%'})
+        worksheet.set_column('B:B', 50, format1)
+        worksheet.set_column('C:C', 35, format2)
+        writer.save()
+ 
+ 
+ 
+    # with open("data/projects_data.json", "a", encoding="utf-8") as file:
+    #     json.dump(projects_data_list, file, indent=4, ensure_ascii=False)
+ 
+ 
+def main():
+ get_data('https://www.goodreads.com/search?page=1&q=+Roger+Zelazny&qid=ems5pajO3W&tab=books')
+#
+if __name__ == "__main__":
+    main()
