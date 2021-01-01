@@ -1,0 +1,31 @@
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+
+headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36'}
+
+questionlist = []
+
+def getQuestions(tag1,tag2, page ):
+    url = f'https://ru.stackoverflow.com/questions/tagged/{tag1},%20{tag2}?tab=Active&page={page}&pagesize=50'
+    r = requests.get(url, headers=headers)
+    soup = BeautifulSoup(r.text, 'html.parser')
+    questions = soup.find_all('div', {'class': 'question-summary'})
+    for item in questions:
+        question = {
+        'tag': tag1+','+tag2,
+        'title': item.find('a', {'class': 'question-hyperlink'}).text,
+        'link': 'https://ru.stackoverflow.com' + item.find('a', {'class': 'question-hyperlink'})['href'],
+        'votes': int(item.find('span', {'class': 'vote-count-post'}).text),
+        'date': item.find('span', {'class': 'relativetime'})['title'],
+        }
+        questionlist.append(question)
+    return
+
+for x in range(1,3):
+    getQuestions("python", "enumerate", x)
+    # getQuestions('parse', x)
+
+df = pd.DataFrame(questionlist)
+df.to_excel('stackquestions.xlsx', index=False)
+print('Finish.')
